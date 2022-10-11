@@ -1,0 +1,59 @@
+package nl.knaw.dans.wf.vaultmd.core;
+
+import nl.knaw.dans.lib.dataverse.DatasetApi;
+import nl.knaw.dans.lib.dataverse.DataverseClient;
+import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.model.dataset.DatasetVersion;
+import nl.knaw.dans.lib.dataverse.model.dataset.FieldList;
+import nl.knaw.dans.lib.dataverse.model.workflow.ResumeMessage;
+import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
+
+import java.io.IOException;
+import java.util.Optional;
+import java.util.Set;
+
+public class DataverseServiceImpl implements DataverseService {
+    private final DataverseClient dataverseClient;
+    private final VersionComparator versionComparator = new VersionComparator();
+
+    public DataverseServiceImpl(DataverseClient dataverseClient) {
+        this.dataverseClient = dataverseClient;
+    }
+
+    @Override
+    public void resumeWorkflow(StepInvocation stepInvocation, ResumeMessage resumeMessage) throws DataverseException, IOException {
+        dataverseClient.workflows().resume(stepInvocation.getInvocationId(), resumeMessage);
+    }
+
+    @Override
+    public Optional<DatasetVersion> getVersion(StepInvocation stepInvocation, String name) throws IOException {
+        try {
+            return Optional.ofNullable(getDataset(stepInvocation).getVersion(name).getData());
+        }
+        catch (DataverseException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<DatasetVersion> getLatestReleasedOrDeaccessionedVersion(StepInvocation stepInvocation) throws DataverseException, IOException {
+        return getDataset(stepInvocation).getAllVersions().getData().stream()
+            .filter(d -> Set.of("RELEASED", "DEACCESSIONED").contains(d.getVersionState()))
+            .max(versionComparator);
+    }
+
+    @Override
+    public void lockDataset(StepInvocation stepInvocation, String workflow) throws DataverseException, IOException {
+        getDataset(stepInvocation).awaitLock("Workflow");
+    }
+
+    @Override
+    public void editMetadata(StepInvocation stepInvocation, FieldList fieldList) throws DataverseException, IOException {
+        getDataset(stepInvocation).editMetadata(fieldList, true);
+    }
+
+    DatasetApi getDataset(StepInvocation stepInvocation) {
+        return dataverseClient.dataset(stepInvocation.getGlobalId(), stepInvocation.getInvocationId());
+    }
+
+}

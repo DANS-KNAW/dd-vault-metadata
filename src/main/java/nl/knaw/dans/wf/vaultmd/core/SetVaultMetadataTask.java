@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.wf.vaultmd.core;
 
-import nl.knaw.dans.lib.dataverse.DatasetApi;
 import nl.knaw.dans.lib.dataverse.DataverseClient;
 import nl.knaw.dans.lib.dataverse.DataverseException;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetVersion;
@@ -28,9 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 public class SetVaultMetadataTask implements Runnable {
@@ -39,16 +36,17 @@ public class SetVaultMetadataTask implements Runnable {
     public static final String DANS_BAG_ID = "dansBagId";
     private static final Logger log = LoggerFactory.getLogger(SetVaultMetadataTask.class);
     private final StepInvocation stepInvocation;
-    private final DataverseClient dataverseClient;
+    //    private final DataverseClient dataverseClient;
+
+    private final DataverseService dataverseService;
 
     private final String nbnPrefix = "nl:ui:13-";
-    private final VersionComparator versionComparator;
 
-    public SetVaultMetadataTask(StepInvocation stepInvocation, DataverseClient dataverseClient) {
+    public SetVaultMetadataTask(StepInvocation stepInvocation, DataverseClient dataverseClient, DataverseService dataverseService) {
         this.stepInvocation = stepInvocation;
-        this.dataverseClient = dataverseClient;
+        //        this.dataverseClient = dataverseClient;
+        this.dataverseService = dataverseService;
         // TODO DI
-        this.versionComparator = new VersionComparator();
     }
 
     @Override
@@ -68,15 +66,19 @@ public class SetVaultMetadataTask implements Runnable {
 
     void runTask() {
         try {
-            var dataset = dataverseClient.dataset(stepInvocation.getGlobalId(), stepInvocation.getInvocationId());
+            // lock dataset before doing work
+            dataverseService.lockDataset(stepInvocation, "Workflow");
 
-            dataset.awaitLock("Workflow");
-            editVaultMetadata(dataset, stepInvocation);
-            resumeWorkflow(stepInvocation.getInvocationId());
+            // update metadata
+            var metadata = getVaultMetadata(stepInvocation);
+            dataverseService.editMetadata(stepInvocation, metadata);
+
+            // resume workflow
+            resumeWorkflow(stepInvocation);
         }
         catch (IOException | DataverseException e) {
             try {
-                dataverseClient.workflows().resume(stepInvocation.getInvocationId(),
+                dataverseService.resumeWorkflow(stepInvocation,
                     new ResumeMessage("Failure", e.getMessage(), "Publication failed: pre-publication workflow returned an error"));
             }
             catch (IOException | DataverseException ex) {
@@ -96,11 +98,16 @@ public class SetVaultMetadataTask implements Runnable {
             .map(PrimitiveSingleValueField::getValue);
     }
 
-    void editVaultMetadata(DatasetApi dataset, StepInvocation stepInvocation) throws IOException, DataverseException {
-        var dsv = dataset.getVersion(":draft").getData();
-        var latestVersion = dataset.getAllVersions().getData().stream()
-            .filter(d -> Set.of("RELEASED", "DEACCESSIONED").contains(d.getVersionState()))
-            .max(versionComparator);
+    FieldList getVaultMetadata(StepInvocation stepInvocation) throws IOException, DataverseException {
+        var dsv = dataverseService.getVersion(stepInvocation, ":draft")
+            .orElseThrow(() -> new IllegalArgumentException("No draft version found"));
+
+        var latestVersion = dataverseService.getLatestReleasedOrDeaccessionedVersion(stepInvocation);
+
+        //        var dsv = dataset.getVersion(":draft").getData();
+        //        var latestVersion = dataset.getAllVersions().getData().stream()
+        //            .filter(d -> Set.of("RELEASED", "DEACCESSIONED").contains(d.getVersionState()))
+        //            .max(versionComparator);
 
         var bagId = latestVersion.map(m -> getBagId(dsv, m))
             .orElseGet(() -> getBagId(dsv));
@@ -115,12 +122,13 @@ public class SetVaultMetadataTask implements Runnable {
         fieldList.add(new PrimitiveSingleValueField(DANS_BAG_ID, bagId));
         fieldList.add(new PrimitiveSingleValueField(DANS_NBN, nbn));
 
-        dataset.editMetadata(fieldList, true);
+        return fieldList;
     }
 
-    void resumeWorkflow(String invocationId) throws IOException, DataverseException {
+    void resumeWorkflow(StepInvocation stepInvocation) throws IOException, DataverseException {
+        dataverseService.resumeWorkflow(stepInvocation, new ResumeMessage("Success", "", ""));
         // TODO do the retry logic that scala has
-        dataverseClient.workflows().resume(invocationId, new ResumeMessage("Success", "", ""));
+        //        dataverseClient.workflows().resume(invocationId, new ResumeMessage("Success", "", ""));
     }
 
     /*
@@ -193,7 +201,7 @@ public class SetVaultMetadataTask implements Runnable {
     }
 
     String mintBagId() {
-        return String.format("urn:nbn:%s", UUID.randomUUID());
+        return String.format("urn:uuid:%s", UUID.randomUUID());
     }
 
 }
