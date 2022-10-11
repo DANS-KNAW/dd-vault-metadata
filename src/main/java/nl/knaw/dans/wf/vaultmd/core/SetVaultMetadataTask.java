@@ -42,11 +42,9 @@ public class SetVaultMetadataTask implements Runnable {
 
     private final String nbnPrefix = "nl:ui:13-";
 
-    public SetVaultMetadataTask(StepInvocation stepInvocation, DataverseClient dataverseClient, DataverseService dataverseService) {
+    public SetVaultMetadataTask(StepInvocation stepInvocation, DataverseService dataverseService) {
         this.stepInvocation = stepInvocation;
-        //        this.dataverseClient = dataverseClient;
         this.dataverseService = dataverseService;
-        // TODO DI
     }
 
     @Override
@@ -57,10 +55,6 @@ public class SetVaultMetadataTask implements Runnable {
     @Override
     public void run() {
         log.info("Running task " + this);
-        //        new SetVaultMetadataTaskScala(
-        //            WorkflowVariables.apply(stepInvocation.getInvocationId(), stepInvocation.getGlobalId(), stepInvocation.getDatasetId(), stepInvocation.getMajorVersion(), stepInvocation.getMinorVersion()),
-        //            dataverseClient, "nl:ui:13-", 10, 1000).run();
-
         runTask();
     }
 
@@ -103,11 +97,6 @@ public class SetVaultMetadataTask implements Runnable {
             .orElseThrow(() -> new IllegalArgumentException("No draft version found"));
 
         var latestVersion = dataverseService.getLatestReleasedOrDeaccessionedVersion(stepInvocation);
-
-        //        var dsv = dataset.getVersion(":draft").getData();
-        //        var latestVersion = dataset.getAllVersions().getData().stream()
-        //            .filter(d -> Set.of("RELEASED", "DEACCESSIONED").contains(d.getVersionState()))
-        //            .max(versionComparator);
 
         var bagId = latestVersion.map(m -> getBagId(dsv, m))
             .orElseGet(() -> getBagId(dsv));

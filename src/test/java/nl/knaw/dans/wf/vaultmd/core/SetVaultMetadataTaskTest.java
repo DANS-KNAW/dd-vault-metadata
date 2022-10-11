@@ -86,7 +86,7 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.ofNullable(previous));
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, null, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService);
         task.runTask();
 
     }
@@ -103,7 +103,7 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.ofNullable(previous));
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, null, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
@@ -123,7 +123,7 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.empty());
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, null, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
@@ -144,7 +144,7 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.of(previous));
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, null, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
@@ -164,7 +164,7 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.empty());
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, null, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
@@ -185,7 +185,7 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.of(previous));
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, null, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
