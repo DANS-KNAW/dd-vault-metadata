@@ -115,10 +115,14 @@ public class SetVaultMetadataTask implements Runnable {
         var nbn = latestVersion.map(this::getNbn)
             .orElseGet(() -> getVaultMetadataFieldValue(dsv, DANS_NBN).orElseGet(this::mintUrnNbn));
 
+        var version = String.format("%s.%s", stepInvocation.getMajorVersion(), stepInvocation.getMinorVersion());
+
+        log.debug("Generating metadata with values dansDataversePid={}, dansDataversePidVersion={}, {}={}, {}={}",
+                stepInvocation.getGlobalId(), version, DANS_BAG_ID, bagId, DANS_NBN, nbn);
+
         var fieldList = new FieldList();
         fieldList.add(new PrimitiveSingleValueField("dansDataversePid", stepInvocation.getGlobalId()));
-        fieldList.add(new PrimitiveSingleValueField("dansDataversePidVersion",
-            String.format("%s.%s", stepInvocation.getMajorVersion(), stepInvocation.getMinorVersion())));
+        fieldList.add(new PrimitiveSingleValueField("dansDataversePidVersion", version));
         fieldList.add(new PrimitiveSingleValueField(DANS_BAG_ID, bagId));
         fieldList.add(new PrimitiveSingleValueField(DANS_NBN, nbn));
 
