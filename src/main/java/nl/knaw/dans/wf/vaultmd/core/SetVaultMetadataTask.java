@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.wf.vaultmd.core;
 
-import nl.knaw.dans.lib.dataverse.DataverseClient;
 import nl.knaw.dans.lib.dataverse.DataverseException;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.FieldList;
@@ -36,7 +35,9 @@ public class SetVaultMetadataTask implements Runnable {
     public static final String DANS_BAG_ID = "dansBagId";
     private static final Logger log = LoggerFactory.getLogger(SetVaultMetadataTask.class);
     private final StepInvocation stepInvocation;
-    //    private final DataverseClient dataverseClient;
+
+    private final int MAX_RETRIES = 10;
+    private final int RETRY_DELAY_MS = 1000;
 
     private final DataverseService dataverseService;
 
@@ -61,16 +62,21 @@ public class SetVaultMetadataTask implements Runnable {
     void runTask() {
         try {
             // lock dataset before doing work
+            log.info("Locking dataset {}", stepInvocation.getGlobalId());
             dataverseService.lockDataset(stepInvocation, "Workflow");
 
             // update metadata
             var metadata = getVaultMetadata(stepInvocation);
+            log.info("Updating metadata for dataset {}", stepInvocation.getGlobalId());
             dataverseService.editMetadata(stepInvocation, metadata);
 
             // resume workflow
             resumeWorkflow(stepInvocation);
+            log.info("Vault metadata set for dataset {}. Dataset resume called.", stepInvocation.getGlobalId());
         }
-        catch (IOException | DataverseException e) {
+        catch (IOException | DataverseException | InterruptedException e) {
+            log.error("SetVaultMetadataTask for dataset {} failed. Resuming dataset with 'fail=true'", stepInvocation.getGlobalId(), e);
+
             try {
                 dataverseService.resumeWorkflow(stepInvocation,
                     new ResumeMessage("Failure", e.getMessage(), "Publication failed: pre-publication workflow returned an error"));
@@ -82,6 +88,8 @@ public class SetVaultMetadataTask implements Runnable {
     }
 
     Optional<String> getVaultMetadataFieldValue(DatasetVersion dataset, String fieldName) {
+        // this gets the single value of a field in the metadata, eg dansDataVaultMetadata.fields[1].value
+        // where fields[1].typeName equals the fieldName parameter
         return Optional.ofNullable(dataset.getMetadataBlocks().get("dansDataVaultMetadata"))
             .map(MetadataBlock::getFields)
             .map(fields -> fields.stream()
@@ -98,16 +106,18 @@ public class SetVaultMetadataTask implements Runnable {
 
         var latestVersion = dataverseService.getLatestReleasedOrDeaccessionedVersion(stepInvocation);
 
+        // if a latest version exists, use that to get the bag id
         var bagId = latestVersion.map(m -> getBagId(dsv, m))
             .orElseGet(() -> getBagId(dsv));
 
+        // if a latest version exists, use that to get the NBN
         var nbn = latestVersion.map(this::getNbn)
             .orElseGet(() -> getVaultMetadataFieldValue(dsv, DANS_NBN).orElseGet(this::mintUrnNbn));
 
         var version = String.format("%s.%s", stepInvocation.getMajorVersion(), stepInvocation.getMinorVersion());
 
         log.debug("Generating metadata with values dansDataversePid={}, dansDataversePidVersion={}, {}={}, {}={}",
-                stepInvocation.getGlobalId(), version, DANS_BAG_ID, bagId, DANS_NBN, nbn);
+            stepInvocation.getGlobalId(), version, DANS_BAG_ID, bagId, DANS_NBN, nbn);
 
         var fieldList = new FieldList();
         fieldList.add(new PrimitiveSingleValueField("dansDataversePid", stepInvocation.getGlobalId()));
@@ -118,13 +128,41 @@ public class SetVaultMetadataTask implements Runnable {
         return fieldList;
     }
 
-    void resumeWorkflow(StepInvocation stepInvocation) throws IOException, DataverseException {
-        dataverseService.resumeWorkflow(stepInvocation, new ResumeMessage("Success", "", ""));
-        // TODO do the retry logic that scala has
-        //        dataverseClient.workflows().resume(invocationId, new ResumeMessage("Success", "", ""));
+    void resumeWorkflow(StepInvocation stepInvocation) throws IOException, DataverseException, InterruptedException {
+        var tried = 0;
+
+        DataverseException lastException = null;
+
+        while (tried++ < 10) {
+            try {
+                log.trace("Resuming workflow with id {}, attempt {}", stepInvocation.getGlobalId(), tried);
+                dataverseService.resumeWorkflow(stepInvocation, new ResumeMessage("Success", "", ""));
+                return;
+            }
+            catch (DataverseException e) {
+                if (e.getHttpResponse().getStatusLine().getStatusCode() == 404) {
+                    // retrying
+                    log.debug("Sleeping {} ms before next try", RETRY_DELAY_MS);
+                    Thread.sleep(RETRY_DELAY_MS);
+                    lastException = e;
+                }
+                else {
+                    log.error("Workflow could not be resumed for dataset {}. Number of retries: {}. Time between retries in ms: {}", stepInvocation.getGlobalId(), tried, RETRY_DELAY_MS);
+                    throw e;
+                }
+            }
+        }
+
+        throw lastException;
     }
 
     /*
+
+  private def checkForInvocationIdNotFoundError(resumeResponse: Try[DataverseHttpResponse[AnyRef]], invocationId: String): Try[Boolean] = {
+    resumeResponse.map(r => isError(r.getHttpResponse.getStatusLine.getStatusCode))
+      .recover { case e: DataverseException if e.getStatus == HTTP_NOT_FOUND => true }
+      .recoverWith { case e: Throwable => Failure(ExternalSystemCallException(s"Resume could not be called for dataset: $invocationId ", e)) }
+  }
     private def resumeWorkflow(invocationId: String): Try[Unit] = {
         logger.trace(s"$maxNumberOfRetries $timeBetweenRetries")
         var numberOfTimesTried = 0

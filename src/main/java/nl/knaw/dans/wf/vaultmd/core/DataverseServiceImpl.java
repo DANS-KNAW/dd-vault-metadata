@@ -18,6 +18,7 @@ package nl.knaw.dans.wf.vaultmd.core;
 import nl.knaw.dans.lib.dataverse.DatasetApi;
 import nl.knaw.dans.lib.dataverse.DataverseClient;
 import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.DataverseHttpResponse;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.FieldList;
 import nl.knaw.dans.lib.dataverse.model.workflow.ResumeMessage;
@@ -36,8 +37,8 @@ public class DataverseServiceImpl implements DataverseService {
     }
 
     @Override
-    public void resumeWorkflow(StepInvocation stepInvocation, ResumeMessage resumeMessage) throws DataverseException, IOException {
-        dataverseClient.workflows().resume(stepInvocation.getInvocationId(), resumeMessage);
+    public DataverseHttpResponse<Object> resumeWorkflow(StepInvocation stepInvocation, ResumeMessage resumeMessage) throws DataverseException, IOException {
+        return dataverseClient.workflows().resume(stepInvocation.getInvocationId(), resumeMessage);
     }
 
     @Override
