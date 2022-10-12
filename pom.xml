@@ -62,14 +62,6 @@
             <artifactId>dans-dataverse-client-lib</artifactId>
         </dependency>
         <dependency>
-            <groupId>nl.knaw.dans.lib</groupId>
-            <artifactId>dans-scala-lib_2.12</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.json4s</groupId>
-            <artifactId>json4s-native_2.12</artifactId>
-        </dependency>
-        <dependency>
             <groupId>nl.knaw.dans</groupId>
             <artifactId>dans-java-utils</artifactId>
         </dependency>
@@ -113,23 +105,9 @@
 
     <build>
         <plugins>
-            <!--
-                Let Scala compile both Java and Scala code for projects with legacy Scala code.
-                Remove this after Scala has been phased out.
-            -->
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>default-compile</id>
-                        <phase>none</phase>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
