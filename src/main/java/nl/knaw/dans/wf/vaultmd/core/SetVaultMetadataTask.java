@@ -57,6 +57,7 @@ public class SetVaultMetadataTask implements Runnable {
     public void run() {
         log.info("Running task " + this);
         runTask();
+        log.info("Completed running task " + this);
     }
 
     void runTask() {
@@ -74,7 +75,8 @@ public class SetVaultMetadataTask implements Runnable {
             resumeWorkflow(stepInvocation);
             log.info("Vault metadata set for dataset {}. Dataset resume called.", stepInvocation.getGlobalId());
         }
-        catch (IOException | DataverseException | InterruptedException e) {
+        // catch all kinds of exceptions
+        catch (Exception e) {
             log.error("SetVaultMetadataTask for dataset {} failed. Resuming dataset with 'fail=true'", stepInvocation.getGlobalId(), e);
 
             try {
@@ -133,13 +135,15 @@ public class SetVaultMetadataTask implements Runnable {
 
         DataverseException lastException = null;
 
-        while (tried++ < 10) {
+        while (tried++ < MAX_RETRIES) {
             try {
                 log.trace("Resuming workflow with id {}, attempt {}", stepInvocation.getGlobalId(), tried);
                 dataverseService.resumeWorkflow(stepInvocation, new ResumeMessage("Success", "", ""));
                 return;
             }
             catch (DataverseException e) {
+                log.warn("Unable to resume workflow due to Dataverse error", e);
+
                 if (e.getHttpResponse().getStatusLine().getStatusCode() == 404) {
                     // retrying
                     log.debug("Sleeping {} ms before next try", RETRY_DELAY_MS);
@@ -156,37 +160,6 @@ public class SetVaultMetadataTask implements Runnable {
         throw lastException;
     }
 
-    /*
-
-  private def checkForInvocationIdNotFoundError(resumeResponse: Try[DataverseHttpResponse[AnyRef]], invocationId: String): Try[Boolean] = {
-    resumeResponse.map(r => isError(r.getHttpResponse.getStatusLine.getStatusCode))
-      .recover { case e: DataverseException if e.getStatus == HTTP_NOT_FOUND => true }
-      .recoverWith { case e: Throwable => Failure(ExternalSystemCallException(s"Resume could not be called for dataset: $invocationId ", e)) }
-  }
-    private def resumeWorkflow(invocationId: String): Try[Unit] = {
-        logger.trace(s"$maxNumberOfRetries $timeBetweenRetries")
-        var numberOfTimesTried = 0
-            var invocationIdNotFound = true
-
-        do {
-            val resumeResponse = Try { dataverse.workflows().resume(invocationId, new ResumeMessage("Success", "", "")) }
-            invocationIdNotFound = checkForInvocationIdNotFoundError(resumeResponse, invocationId).unsafeGetOrThrow
-
-            if (invocationIdNotFound) {
-                logger.debug(s"Sleeping $timeBetweenRetries ms before next try..")
-                sleep(timeBetweenRetries)
-                numberOfTimesTried += 1
-            }
-        } while (numberOfTimesTried <= maxNumberOfRetries && invocationIdNotFound)
-
-        if (invocationIdNotFound) {
-            logger.error(s"Workflow could not be resumed for dataset ${ workFlowVariables.globalId }. Number of retries: $maxNumberOfRetries. Time between retries: $timeBetweenRetries")
-            Failure(InvocationIdNotFoundException(maxNumberOfRetries, timeBetweenRetries))
-        }
-        else Success(())
-    }
-
-     */
     String getNbn(DatasetVersion latestPublishedDataset) {
         // validate latest published version has a bag id
         return getVaultMetadataFieldValue(latestPublishedDataset, DANS_NBN)
