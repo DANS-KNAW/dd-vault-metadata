@@ -20,9 +20,11 @@ import nl.knaw.dans.lib.dataverse.model.dataset.DatasetVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.FieldList;
 import nl.knaw.dans.lib.dataverse.model.dataset.MetadataBlock;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
+import nl.knaw.dans.lib.dataverse.model.workflow.ResumeMessage;
 import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
 import org.assertj.core.api.AbstractStringAssert;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -34,40 +36,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 
 class SetVaultMetadataTaskTest {
 
     private final DataverseService dataverseService = Mockito.mock(DataverseService.class);
-
-    DatasetVersion createVersion(String bagId, String nbn, int version, int versionMinor, String versionState) {
-        var draftVersion = new DatasetVersion();
-        draftVersion.setVersionNumber(version);
-        draftVersion.setVersionMinorNumber(versionMinor);
-        draftVersion.setVersionState(versionState);
-        draftVersion.setMetadataBlocks(new HashMap<>());
-
-        var block = new MetadataBlock();
-        block.setFields(new ArrayList<>());
-
-        if (bagId != null) {
-            block.getFields().add(new PrimitiveSingleValueField("dansBagId", bagId));
-        }
-
-        if (nbn != null) {
-            block.getFields().add(new PrimitiveSingleValueField("dansNbn", nbn));
-        }
-
-        draftVersion.getMetadataBlocks().put("dansDataVaultMetadata", block);
-
-        return draftVersion;
-    }
-
-    AbstractStringAssert<?> assertThatMetadataField(FieldList fieldList, String property) {
-        return assertThat(fieldList.getFields())
-            .filteredOn("typeName", property)
-            .extracting("value")
-            .first(as(InstanceOfAssertFactories.STRING));
-    }
 
     @BeforeEach
     public void beforeEach() {
@@ -76,31 +50,31 @@ class SetVaultMetadataTaskTest {
 
     @Test
     void run() throws IOException, DataverseException {
-        var draft = createVersion("bagid", "nbn", 1, 1, "DRAFT");
-        var previous = createVersion("bagid", "nbn", 1, 0, "RELEASED");
+        var draft = createDatasetVersion("bagid", "nbn", 1, 1, "DRAFT");
+        var previous = createDatasetVersion("bagid", "nbn", 1, 0, "RELEASED");
 
         Mockito.when(dataverseService.getVersion(Mockito.any(), Mockito.any()))
-            .thenReturn(Optional.ofNullable(draft));
+            .thenReturn(Optional.of(draft));
 
         Mockito.when(dataverseService.getLatestReleasedOrDeaccessionedVersion(Mockito.any()))
-            .thenReturn(Optional.ofNullable(previous));
+            .thenReturn(Optional.of(previous));
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
         var task = new SetVaultMetadataTask(step, dataverseService);
         task.runTask();
-
+        Mockito.verify(dataverseService).resumeWorkflow(eq(step), argThat(r -> r.getStatus().equals("Success")));
     }
 
     @Test
     void getMetadata() throws IOException, DataverseException {
-        var draft = createVersion("bagid", "nbn", 1, 1, "DRAFT");
-        var previous = createVersion("bagid", "nbn", 1, 0, "RELEASED");
+        var draft = createDatasetVersion("bagid", "nbn", 1, 1, "DRAFT");
+        var previous = createDatasetVersion("bagid", "nbn", 1, 0, "RELEASED");
 
         Mockito.when(dataverseService.getVersion(Mockito.any(), Mockito.any()))
-            .thenReturn(Optional.ofNullable(draft));
+            .thenReturn(Optional.of(draft));
 
         Mockito.when(dataverseService.getLatestReleasedOrDeaccessionedVersion(Mockito.any()))
-            .thenReturn(Optional.ofNullable(previous));
+            .thenReturn(Optional.of(previous));
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
         var task = new SetVaultMetadataTask(step, dataverseService);
@@ -114,10 +88,10 @@ class SetVaultMetadataTaskTest {
 
     @Test
     void getMetadataWithoutPreviousVersion() throws IOException, DataverseException {
-        var draft = createVersion("bagid", "nbn", 1, 1, "DRAFT");
+        var draft = createDatasetVersion("bagid", "nbn", 1, 1, "DRAFT");
 
         Mockito.when(dataverseService.getVersion(Mockito.any(), Mockito.any()))
-            .thenReturn(Optional.ofNullable(draft));
+            .thenReturn(Optional.of(draft));
 
         Mockito.when(dataverseService.getLatestReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(Optional.empty());
@@ -134,8 +108,8 @@ class SetVaultMetadataTaskTest {
 
     @Test
     void getMetadataWithDifferentPreviousVersion() throws IOException, DataverseException {
-        var draft = createVersion("bagid", "nbn", 1, 1, "DRAFT");
-        var previous = createVersion("different-bagid", "different-nbn", 1, 0, "RELEASED");
+        var draft = createDatasetVersion("bagid", "nbn", 1, 1, "DRAFT");
+        var previous = createDatasetVersion("different-bagid", "different-nbn", 1, 0, "RELEASED");
 
         Mockito.when(dataverseService.getVersion(Mockito.any(), Mockito.any()))
             .thenReturn(Optional.of(draft));
@@ -155,7 +129,7 @@ class SetVaultMetadataTaskTest {
 
     @Test
     void getMetadataWithNullMetadata() throws IOException, DataverseException {
-        var draft = createVersion(null, null, 1, 1, "DRAFT");
+        var draft = createDatasetVersion(null, null, 1, 1, "DRAFT");
 
         Mockito.when(dataverseService.getVersion(Mockito.any(), Mockito.any()))
             .thenReturn(Optional.of(draft));
@@ -175,8 +149,8 @@ class SetVaultMetadataTaskTest {
 
     @Test
     void getMetadataWithNullMetadataAndPreviousVersion() throws IOException, DataverseException {
-        var draft = createVersion(null, null, 1, 1, "DRAFT");
-        var previous = createVersion("different-bagid", "different-nbn", 1, 0, "RELEASED");
+        var draft = createDatasetVersion(null, null, 1, 1, "DRAFT");
+        var previous = createDatasetVersion("different-bagid", "different-nbn", 1, 0, "RELEASED");
 
         Mockito.when(dataverseService.getVersion(Mockito.any(), Mockito.any()))
             .thenReturn(Optional.of(draft));
@@ -193,4 +167,36 @@ class SetVaultMetadataTaskTest {
         assertThatMetadataField(metadata, "dansBagId").startsWith("urn:uuid:");
         assertThatMetadataField(metadata, "dansNbn").isEqualTo("different-nbn");
     }
+
+    // Helper functions
+    private static DatasetVersion createDatasetVersion(String bagId, String nbn, int version, int versionMinor, String versionState) {
+        var datasetVersion = new DatasetVersion();
+        datasetVersion.setVersionNumber(version);
+        datasetVersion.setVersionMinorNumber(versionMinor);
+        datasetVersion.setVersionState(versionState);
+        datasetVersion.setMetadataBlocks(new HashMap<>());
+
+        var block = new MetadataBlock();
+        block.setFields(new ArrayList<>());
+
+        if (bagId != null) {
+            block.getFields().add(new PrimitiveSingleValueField("dansBagId", bagId));
+        }
+
+        if (nbn != null) {
+            block.getFields().add(new PrimitiveSingleValueField("dansNbn", nbn));
+        }
+
+        datasetVersion.getMetadataBlocks().put("dansDataVaultMetadata", block);
+
+        return datasetVersion;
+    }
+
+    private static AbstractStringAssert<?> assertThatMetadataField(FieldList fieldList, String property) {
+        return assertThat(fieldList.getFields())
+            .filteredOn("typeName", property)
+            .extracting("value")
+            .first(as(InstanceOfAssertFactories.STRING));
+    }
+
 }
