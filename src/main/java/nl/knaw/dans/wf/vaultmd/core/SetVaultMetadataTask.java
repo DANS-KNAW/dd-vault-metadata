@@ -113,7 +113,7 @@ public class SetVaultMetadataTask implements Runnable {
     Optional<String> getVaultMetadataFieldValue(DatasetVersion dataset, String fieldName) {
         // this gets the single value of a field in the metadata, eg dansDataVaultMetadata.fields[1].value
         // where fields[1].typeName equals the fieldName parameter
-        return Optional.ofNullable(dataset.getMetadataBlocks().get("dansDataVaultMetadata"))
+        var result = Optional.ofNullable(dataset.getMetadataBlocks().get("dansDataVaultMetadata"))
             .map(MetadataBlock::getFields)
             .map(fields -> fields.stream()
                 .filter(field -> field.getTypeName().equals(fieldName))
@@ -121,6 +121,11 @@ public class SetVaultMetadataTask implements Runnable {
             .flatMap(i -> i)
             .map(f -> (PrimitiveSingleValueField) f)
             .map(PrimitiveSingleValueField::getValue);
+
+        if(result.equals(Optional.of(""))) {
+            return Optional.empty();
+        }
+        return result;
     }
 
     FieldList getVaultMetadata(StepInvocation stepInvocation) throws IOException, DataverseException {
