@@ -39,8 +39,6 @@ public class SetVaultMetadataTask implements Runnable {
     private static final int MAX_RETRIES = 10;
     private static final int RETRY_DELAY_MS = 1000;
 
-    private static List<String> REQUIRED_VAUL_METADATA_FIELDS = List.of("dansDatasetPid", "dansDatasetPidVersion", "dansBagId", "dansNbn");
-
     private final DataverseService dataverseService;
     private final StepInvocation stepInvocation;
 
@@ -72,7 +70,6 @@ public class SetVaultMetadataTask implements Runnable {
 
             // update metadata
             var metadata = getVaultMetadata(stepInvocation);
-            verifyVaultMetadata(metadata, Integer.parseInt(stepInvocation.getMajorVersion()), Integer.parseInt(stepInvocation.getMinorVersion()));
             log.info("Updating metadata for dataset {}", stepInvocation.getGlobalId());
             dataverseService.editMetadata(stepInvocation, metadata);
 
@@ -94,27 +91,14 @@ public class SetVaultMetadataTask implements Runnable {
         }
     }
 
-    void verifyVaultMetadata(FieldList vaultMetadata, int majorVersion, int minorVersion) {
-        // If version > 1.0 the vault metadata MUST be present and some field MUST be filled
-        if (majorVersion > 1 || minorVersion > 0) {
-            var requiredFields = vaultMetadata.getFields()
-                .stream().filter(f -> REQUIRED_VAUL_METADATA_FIELDS.contains(f.getTypeName())).collect(Collectors.toList());
-            var emptyRequiredFields = requiredFields.stream()
-                .map(f -> (PrimitiveSingleValueField) f).filter(f2 -> StringUtils.isBlank(f2.getValue()))
-                .map(MetadataField::getTypeName)
-                .collect(Collectors.toList());
-            if (!emptyRequiredFields.isEmpty()) {
-                throw new IllegalArgumentException(
-                    String.format("The following fields should never be empty for a dataset version > 1.0: %s", String.join(", ", emptyRequiredFields)));
-            }
-        }
+    Optional<List<MetadataField>> getVaultMetadata(DatasetVersion datasetVersion) {
+        return Optional.ofNullable(datasetVersion.getMetadataBlocks().get("dansDataVaultMetadata")).map(MetadataBlock::getFields);
     }
 
-    Optional<String> getVaultMetadataFieldValue(DatasetVersion dataset, String fieldName) {
+    Optional<String> getVaultMetadataFieldValue(DatasetVersion datasetVersion, String fieldName) {
         // this gets the single value of a field in the metadata, eg dansDataVaultMetadata.fields[1].value
         // where fields[1].typeName equals the fieldName parameter
-        var result = Optional.ofNullable(dataset.getMetadataBlocks().get("dansDataVaultMetadata"))
-            .map(MetadataBlock::getFields)
+        var result = getVaultMetadata(datasetVersion)
             .map(fields -> fields.stream()
                 .filter(field -> field.getTypeName().equals(fieldName))
                 .findFirst())
@@ -122,7 +106,7 @@ public class SetVaultMetadataTask implements Runnable {
             .map(f -> (PrimitiveSingleValueField) f)
             .map(PrimitiveSingleValueField::getValue);
 
-        if(result.equals(Optional.of(""))) {
+        if (result.equals(Optional.of(""))) {
             return Optional.empty();
         }
         return result;
