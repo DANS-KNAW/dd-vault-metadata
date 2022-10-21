@@ -20,11 +20,9 @@ import nl.knaw.dans.lib.dataverse.model.dataset.DatasetVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.FieldList;
 import nl.knaw.dans.lib.dataverse.model.dataset.MetadataBlock;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
-import nl.knaw.dans.lib.dataverse.model.workflow.ResumeMessage;
 import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
 import org.assertj.core.api.AbstractStringAssert;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -43,6 +41,8 @@ class SetVaultMetadataTaskTest {
 
     private final DataverseService dataverseService = Mockito.mock(DataverseService.class);
 
+    private final IdMintingService mintingService = Mockito.mock(IdMintingService.class);
+
     @BeforeEach
     public void beforeEach() {
         Mockito.reset(dataverseService);
@@ -50,8 +50,11 @@ class SetVaultMetadataTaskTest {
 
     @Test
     void run() throws IOException, DataverseException {
-        var draft = createDatasetVersion("bagid", "nbn", 1, 1, "DRAFT");
-        var previous = createDatasetVersion("bagid", "nbn", 1, 0, "RELEASED");
+        final var previousBagId = "urn:uuid:530dc968-4430-4186-bf58-08d98d717889";
+        final var nbn = "urn:nbn:nl:ui:13-73750978-5587-4e2b-937f-6b190e44fcae";
+
+        var draft = createDatasetVersion(previousBagId, nbn, 1, 1, "DRAFT");
+        var previous = createDatasetVersion(previousBagId, nbn, 1, 0, "RELEASED");
 
         Mockito.when(dataverseService.getVersion(Mockito.any(), Mockito.any()))
             .thenReturn(Optional.of(draft));
@@ -60,15 +63,19 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.of(previous));
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService, new IdMintingServiceImpl());
         task.runTask();
         Mockito.verify(dataverseService).resumeWorkflow(eq(step), argThat(r -> r.getStatus().equals("Success")));
     }
 
     @Test
-    void getMetadata() throws IOException, DataverseException {
-        var draft = createDatasetVersion("bagid", "nbn", 1, 1, "DRAFT");
-        var previous = createDatasetVersion("bagid", "nbn", 1, 0, "RELEASED");
+    void getVaultMetadata_with_inherited_bagId_and_nbn() throws IOException, DataverseException {
+        final var previousBagId = "urn:uuid:530dc968-4430-4186-bf58-08d98d717889";
+        final var newBagId = "urn:uuid:cbdf4d18-65af-42d2-baf3-6ca07ddfd3b2";
+        final var nbn = "urn:nbn:nl:ui:13-73750978-5587-4e2b-937f-6b190e44fcae";
+
+        var draft = createDatasetVersion(previousBagId, nbn, 1, 1, "DRAFT");
+        var previous = createDatasetVersion(previousBagId, nbn, 1, 0, "RELEASED");
 
         Mockito.when(dataverseService.getVersion(Mockito.any(), Mockito.any()))
             .thenReturn(Optional.of(draft));
@@ -76,19 +83,24 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseService.getLatestReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(Optional.of(previous));
 
+        Mockito.when(mintingService.mintBagId()).thenReturn(newBagId);
+
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService, mintingService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
         assertThatMetadataField(metadata, "dansDataversePidVersion").isEqualTo("1.1");
-        assertThatMetadataField(metadata, "dansBagId").startsWith("urn:uuid:");
-        assertThatMetadataField(metadata, "dansNbn").isEqualTo("nbn");
+        assertThatMetadataField(metadata, "dansBagId").isEqualTo(newBagId);
+        assertThatMetadataField(metadata, "dansNbn").isEqualTo(nbn);
     }
 
     @Test
-    void getMetadataWithoutPreviousVersion() throws IOException, DataverseException {
-        var draft = createDatasetVersion("bagid", "nbn", 1, 1, "DRAFT");
+    void getMetadata_without_previous_version_and_empty_bagid_and_nbn() throws IOException, DataverseException {
+        final var newBagId = "urn:uuid:cbdf4d18-65af-42d2-baf3-6ca07ddfd3b2";
+        final var newNbn = "urn:nbn:nl:ui:13-73750978-5587-4e2b-937f-6b190e44fcae";
+
+        var draft = createDatasetVersionWithoutVaultMetadataBlock(1, 0, "DRAFT");
 
         Mockito.when(dataverseService.getVersion(Mockito.any(), Mockito.any()))
             .thenReturn(Optional.of(draft));
@@ -96,14 +108,17 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseService.getLatestReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(Optional.empty());
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, dataverseService);
+        Mockito.when(mintingService.mintBagId()).thenReturn(newBagId);
+        Mockito.when(mintingService.mintUrnNbn()).thenReturn(newNbn);
+
+        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "0");
+        var task = new SetVaultMetadataTask(step, dataverseService, mintingService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
-        assertThatMetadataField(metadata, "dansDataversePidVersion").isEqualTo("1.1");
-        assertThatMetadataField(metadata, "dansBagId").isEqualTo("bagid");
-        assertThatMetadataField(metadata, "dansNbn").isEqualTo("nbn");
+        assertThatMetadataField(metadata, "dansDataversePidVersion").isEqualTo("1.0");
+        assertThatMetadataField(metadata, "dansBagId").isEqualTo(newBagId);
+        assertThatMetadataField(metadata, "dansNbn").isEqualTo(newNbn);
     }
 
     @Test
@@ -118,7 +133,7 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.of(previous));
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService, mintingService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
@@ -138,7 +153,7 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.empty());
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService, mintingService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
@@ -159,7 +174,7 @@ class SetVaultMetadataTaskTest {
             .thenReturn(Optional.of(previous));
 
         var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
-        var task = new SetVaultMetadataTask(step, dataverseService);
+        var task = new SetVaultMetadataTask(step, dataverseService, mintingService);
         var metadata = task.getVaultMetadata(step);
 
         assertThatMetadataField(metadata, "dansDataversePid").isEqualTo("globalId");
@@ -191,6 +206,20 @@ class SetVaultMetadataTaskTest {
 
         return datasetVersion;
     }
+
+    private static DatasetVersion createDatasetVersionWithoutVaultMetadataBlock(int version, int versionMinor, String versionState) {
+        var datasetVersion = new DatasetVersion();
+        datasetVersion.setVersionNumber(version);
+        datasetVersion.setVersionMinorNumber(versionMinor);
+        datasetVersion.setVersionState(versionState);
+        datasetVersion.setMetadataBlocks(new HashMap<>());
+
+        var block = new MetadataBlock();
+        block.setFields(new ArrayList<>());
+
+        return datasetVersion;
+    }
+
 
     private static AbstractStringAssert<?> assertThatMetadataField(FieldList fieldList, String property) {
         return assertThat(fieldList.getFields())
