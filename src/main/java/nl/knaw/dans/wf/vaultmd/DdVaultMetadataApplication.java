@@ -19,10 +19,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import io.dropwizard.core.Application;
 import io.dropwizard.core.setup.Bootstrap;
 import io.dropwizard.core.setup.Environment;
+import nl.knaw.dans.lib.util.DataverseHealthCheck;
 import nl.knaw.dans.wf.vaultmd.core.DataverseServiceImpl;
 import nl.knaw.dans.wf.vaultmd.core.IdMintingServiceImpl;
 import nl.knaw.dans.wf.vaultmd.core.IdValidatorImpl;
-import nl.knaw.dans.wf.vaultmd.health.DataverseResponsiveCheck;
 import nl.knaw.dans.wf.vaultmd.resources.StepInvocationResource;
 import nl.knaw.dans.wf.vaultmd.resources.StepRollbackResource;
 
@@ -52,7 +52,7 @@ public class DdVaultMetadataApplication extends Application<DdVaultMetadataConfi
         final var idValidator = new IdValidatorImpl();
         final var idMintingService = new IdMintingServiceImpl();
 
-        environment.healthChecks().register("Dataverse", new DataverseResponsiveCheck(dv));
+        environment.healthChecks().register("Dataverse", new DataverseHealthCheck(dv));
         ExecutorService executor = configuration.getTaskQueue().build(environment);
         environment.jersey().register(new StepInvocationResource(executor, dataverseService, idMintingService, idValidator));
         environment.jersey().register(new StepRollbackResource(executor));
