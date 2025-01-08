@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.wf.vaultmd.core;
 
+import lombok.extern.slf4j.Slf4j;
 import nl.knaw.dans.lib.dataverse.DataverseException;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.FieldList;
@@ -33,12 +34,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class SetVaultMetadataTask implements Runnable {
     public static final String DANS_NBN = "dansNbn";
     public static final String DANS_BAG_ID = "dansBagId";
     public static final String DANS_DATAVERSE_PID = "dansDataversePid";
     public static final String DANS_DATAVERSE_PID_VERSION = "dansDataversePidVersion";
-    private static final Logger log = LoggerFactory.getLogger(SetVaultMetadataTask.class);
     private static final int MAX_RETRIES = 10;
     private static final int RETRY_DELAY_MS = 1000;
 
@@ -167,10 +168,10 @@ public class SetVaultMetadataTask implements Runnable {
      * dansNbn must be an urn:nbn
      * dansBagId must be an urn:uuid
      *
-     * @param stepInvocation
-     * @param fieldList
-     * @throws IOException
-     * @throws DataverseException
+     * @param stepInvocation the step invocation
+     * @param fieldList the field list
+     * @throws IOException when an I/O error occurred
+     * @throws DataverseException when a Dataverse error occurred
      * @throws IllegalArgumentException when a validation error occurred
      * //@formatter:on
      */
@@ -192,24 +193,26 @@ public class SetVaultMetadataTask implements Runnable {
         var majorVersion = Integer.parseInt(stepInvocation.getMajorVersion());
         var minorVersion = Integer.parseInt(stepInvocation.getMinorVersion());
 
+        log.debug("Version to be published: {}.{}", majorVersion, minorVersion);
+
         // anything greater than 1.0
         if (majorVersion > 1 || (majorVersion == 1 && minorVersion > 0)) {
             var pidVersion = getRequiredFieldListValue(fieldList, DANS_DATAVERSE_PID_VERSION);
-            log.trace("Found '{}' property with value '{}'", DANS_DATAVERSE_PID_VERSION, pidVersion);
+            log.debug("Found '{}' property with value '{}'", DANS_DATAVERSE_PID_VERSION, pidVersion);
             var pid = getRequiredFieldListValue(fieldList, DANS_DATAVERSE_PID);
-            log.trace("Found '{}' property with value '{}'", DANS_DATAVERSE_PID, pid);
+            log.debug("Found '{}' property with value '{}'", DANS_DATAVERSE_PID, pid);
 
-            var allVersions = dataverseService.getAllReleasedOrDeaccessionedVersion(stepInvocation);
+            var allReleasedOrDeaccessionedVersions = dataverseService.getAllReleasedOrDeaccessionedVersion(stepInvocation);
 
             // if there are no previous versions, it failed to validate
-            if (allVersions.size() == 0) {
+            if (allReleasedOrDeaccessionedVersions.isEmpty()) {
                 throw new IllegalArgumentException(String.format(
                     "Version %s.%s is greater than 1.0, but no previous version found", majorVersion, minorVersion
                 ));
             }
 
             // now ensure pid and nbn are the same for each version
-            for (var version : allVersions) {
+            for (var version : allReleasedOrDeaccessionedVersions) {
                 var otherPid = getVaultMetadataFieldValue(version, DANS_DATAVERSE_PID)
                     .orElseThrow(() -> new IllegalStateException(String.format(
                         "Released or deaccessioned version found without '%s' property (version %s.%s)",
@@ -258,7 +261,7 @@ public class SetVaultMetadataTask implements Runnable {
 
         while (tried++ < MAX_RETRIES) {
             try {
-                log.trace("Resuming workflow with id {}, attempt {}", stepInvocation.getGlobalId(), tried);
+                log.debug("Resuming workflow with id {}, attempt {}", stepInvocation.getGlobalId(), tried);
                 dataverseService.resumeWorkflow(stepInvocation, new ResumeMessage("Success", "", ""));
                 return;
             }
