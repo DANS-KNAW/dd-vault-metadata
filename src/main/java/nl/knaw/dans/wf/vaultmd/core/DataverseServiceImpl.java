@@ -75,7 +75,7 @@ public class DataverseServiceImpl implements DataverseService {
     }
 
     @Override
-    public void lockDataset(StepInvocation stepInvocation, String workflow) throws DataverseException, IOException {
+    public void awaitLock(StepInvocation stepInvocation, String workflow) throws DataverseException, IOException {
         getDataset(stepInvocation).awaitLock("Workflow");
     }
 

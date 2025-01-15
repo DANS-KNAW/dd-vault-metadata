@@ -42,7 +42,7 @@ public interface DataverseService {
      */
     Collection<DatasetVersion> getAllReleasedOrDeaccessionedVersion(StepInvocation stepInvocation) throws DataverseException, IOException;
 
-    void lockDataset(StepInvocation stepInvocation, String workflow) throws DataverseException, IOException;
+    void awaitLock(StepInvocation stepInvocation, String workflow) throws DataverseException, IOException;
 
     void editMetadata(StepInvocation stepInvocation, FieldList fieldList) throws DataverseException, IOException;
 }

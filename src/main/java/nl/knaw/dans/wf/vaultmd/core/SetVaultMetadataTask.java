@@ -25,8 +25,6 @@ import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
 import nl.knaw.dans.lib.dataverse.model.workflow.ResumeMessage;
 import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -71,8 +69,8 @@ public class SetVaultMetadataTask implements Runnable {
     void runTask() {
         try {
             // lock dataset before doing work
-            log.info("Locking dataset {}", stepInvocation.getGlobalId());
-            dataverseService.lockDataset(stepInvocation, "Workflow");
+            log.info("Waiting for Dataverse to lock dataset {} for exclusive workflow operations", stepInvocation.getGlobalId());
+            dataverseService.awaitLock(stepInvocation, "Workflow");
 
             // update metadata
             var metadata = getVaultMetadata(stepInvocation);
