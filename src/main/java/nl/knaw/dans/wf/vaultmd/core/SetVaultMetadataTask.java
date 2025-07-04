@@ -223,7 +223,7 @@ public class SetVaultMetadataTask implements Runnable {
                         DANS_NBN, version.getVersionNumber(), version.getVersionMinorNumber()
                     )));
 
-                if (!StringUtils.equals(pid, otherPid)) {
+                if (!StringUtils.equalsIgnoreCase(pid, otherPid)) {
                     throw new IllegalStateException(String.format(
                         "Mismatch in '%s' property, expected '%s' in version %s.%s, but instead found '%s'",
                         DANS_DATAVERSE_PID, pid, version.getVersionNumber(), version.getVersionMinorNumber(), otherPid
