@@ -7,7 +7,6 @@
 /dependency-reduced-pom.xml
 /buildNumber.properties
 /init-project.sh
-*.class
 *~
 *.swp
 *.sc
@@ -15,18 +14,15 @@
 /.idea/
 .DS_Store
 /site
-/apphome.sh
 /etc/
 /data/
 /data-*/
 /.vagrant/
 /.yum-repo
 /.dans.knaw.nl-yum-repo
+/venv/
 /.venv-mkdocs
+/docs/swagger-ui/
+/docs/api.yml
 
 
-# Eclipse
-/.project
-/.settings
-/.classpath
-/.cache
