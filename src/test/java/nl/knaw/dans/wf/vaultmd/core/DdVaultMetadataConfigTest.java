@@ -22,7 +22,7 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.configuration.YamlConfigurationFactory;
 import io.dropwizard.jackson.Jackson;
 import io.dropwizard.jersey.validation.Validators;
-import nl.knaw.dans.wf.vaultmd.DdVaultMetadataConfiguration;
+import nl.knaw.dans.wf.vaultmd.config.DdVaultMetadataConfig;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileInputStream;
@@ -30,12 +30,12 @@ import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class DdVaultMetadataConfigurationTest {
-    private final YamlConfigurationFactory<DdVaultMetadataConfiguration> factory;
+public class DdVaultMetadataConfigTest {
+    private final YamlConfigurationFactory<DdVaultMetadataConfig> factory;
 
     {
         ObjectMapper mapper = Jackson.newObjectMapper().enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        factory = new YamlConfigurationFactory<>(DdVaultMetadataConfiguration.class, Validators.newValidator(), mapper, "dw");
+        factory = new YamlConfigurationFactory<>(DdVaultMetadataConfig.class, Validators.newValidator(), mapper, "dw");
     }
 
     @Test

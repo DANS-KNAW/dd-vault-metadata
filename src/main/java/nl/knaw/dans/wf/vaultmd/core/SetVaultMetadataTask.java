@@ -23,7 +23,7 @@ import nl.knaw.dans.lib.dataverse.model.dataset.MetadataBlock;
 import nl.knaw.dans.lib.dataverse.model.dataset.MetadataField;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
 import nl.knaw.dans.lib.dataverse.model.workflow.ResumeMessage;
-import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
+import nl.knaw.dans.wf.vaultmd.api.StepInvocationDto;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -42,12 +42,12 @@ public class SetVaultMetadataTask implements Runnable {
     private static final int RETRY_DELAY_MS = 1000;
 
     private final DataverseService dataverseService;
-    private final StepInvocation stepInvocation;
+    private final StepInvocationDto stepInvocation;
 
     private final IdMintingService mintingService;
     private final IdValidator idValidator;
 
-    public SetVaultMetadataTask(StepInvocation stepInvocation, DataverseService dataverseService, IdMintingService mintingService, IdValidator idValidator) {
+    public SetVaultMetadataTask(StepInvocationDto stepInvocation, DataverseService dataverseService, IdMintingService mintingService, IdValidator idValidator) {
         this.stepInvocation = stepInvocation;
         this.dataverseService = dataverseService;
         this.mintingService = mintingService;
@@ -120,7 +120,7 @@ public class SetVaultMetadataTask implements Runnable {
         return result;
     }
 
-    FieldList getVaultMetadata(StepInvocation stepInvocation) throws IOException, DataverseException {
+    FieldList getVaultMetadata(StepInvocationDto stepInvocation) throws IOException, DataverseException {
         var draftVersion = dataverseService.getVersion(stepInvocation, ":draft")
             .orElseThrow(() -> new IllegalArgumentException("No draft version found"));
 
@@ -173,7 +173,7 @@ public class SetVaultMetadataTask implements Runnable {
      * @throws IllegalArgumentException when a validation error occurred
      * //@formatter:on
      */
-    void validateBagMetadata(StepInvocation stepInvocation, FieldList fieldList) throws IOException, DataverseException {
+    void validateBagMetadata(StepInvocationDto stepInvocation, FieldList fieldList) throws IOException, DataverseException {
 
         var bagId = getRequiredFieldListValue(fieldList, DANS_BAG_ID);
         var nbn = getRequiredFieldListValue(fieldList, DANS_NBN);
@@ -252,7 +252,7 @@ public class SetVaultMetadataTask implements Runnable {
             .orElseThrow(() -> new IllegalArgumentException(String.format("'%s' missing from metadata", key)));
     }
 
-    void resumeWorkflow(StepInvocation stepInvocation) throws IOException, DataverseException, InterruptedException {
+    void resumeWorkflow(StepInvocationDto stepInvocation) throws IOException, DataverseException, InterruptedException {
         var tried = 0;
 
         DataverseException lastException = null;

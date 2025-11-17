@@ -16,7 +16,7 @@
 package nl.knaw.dans.wf.vaultmd.core;
 
 import nl.knaw.dans.lib.dataverse.DataverseClient;
-import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
+import nl.knaw.dans.wf.vaultmd.api.StepInvocationDto;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -30,7 +30,12 @@ class DataverseServiceImplTest {
     @Test
     void getAllReleasedOrDeaccessionedVersion_should_return_versions_in_descending_order() throws Exception {
         var service = Mockito.spy(new DataverseServiceImpl(Mockito.mock(DataverseClient.class),null));
-        var step = new StepInvocation("invocationId", "globalId", "datasetId", "1", "5");
+        var step = new StepInvocationDto()
+            .invocationId("invocationId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("5");
 
         var version1 = TestUtilities.createDatasetVersion("bagId1", "nbn", 1, 1, "RELEASED");
         var version2 = TestUtilities.createDatasetVersion("bagId2", "nbn", 1, 2, "RELEASED");

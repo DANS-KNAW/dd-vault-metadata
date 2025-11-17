@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.wf.vaultmd.core;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import nl.knaw.dans.lib.dataverse.DatasetApi;
 import nl.knaw.dans.lib.dataverse.DataverseClient;
 import nl.knaw.dans.lib.dataverse.DataverseException;
@@ -22,36 +24,34 @@ import nl.knaw.dans.lib.dataverse.DataverseHttpResponse;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.FieldList;
 import nl.knaw.dans.lib.dataverse.model.workflow.ResumeMessage;
-import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
+import nl.knaw.dans.wf.vaultmd.api.StepInvocationDto;
 import org.apache.hc.core5.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonMap;
 
+@Slf4j
+@RequiredArgsConstructor
 public class DataverseServiceImpl implements DataverseService {
-    private static final Logger log = LoggerFactory.getLogger(DataverseServiceImpl.class);
-    private final DataverseClient dataverseClient;
-    private final VersionComparator versionComparator = new VersionComparator();
     private static final String MDKEY_NAME = "dansDataVaultMetadata"; // the name of the metadata block
+    private static final VersionComparator versionComparator = new VersionComparator();
+
+    private final DataverseClient dataverseClient;
     private final String vaultMetadataKey;
-    
-    public DataverseServiceImpl(DataverseClient dataverseClient, String vaultMetadataKey) {
-        this.dataverseClient = dataverseClient;
-        this.vaultMetadataKey = vaultMetadataKey;
-    }
 
     @Override
-    public DataverseHttpResponse<Object> resumeWorkflow(StepInvocation stepInvocation, ResumeMessage resumeMessage) throws DataverseException, IOException {
+    public DataverseHttpResponse<Object> resumeWorkflow(StepInvocationDto stepInvocation, ResumeMessage resumeMessage) throws DataverseException, IOException {
         return dataverseClient.workflows().resume(stepInvocation.getInvocationId(), resumeMessage);
     }
 
     @Override
-    public Optional<DatasetVersion> getVersion(StepInvocation stepInvocation, String name) throws IOException {
+    public Optional<DatasetVersion> getVersion(StepInvocationDto stepInvocation, String name) throws IOException {
         try {
             return Optional.ofNullable(getDataset(stepInvocation).getVersion(name).getData());
         }
@@ -67,7 +67,7 @@ public class DataverseServiceImpl implements DataverseService {
     }
 
     @Override
-    public Collection<DatasetVersion> getAllReleasedOrDeaccessionedVersion(StepInvocation stepInvocation) throws DataverseException, IOException {
+    public Collection<DatasetVersion> getAllReleasedOrDeaccessionedVersion(StepInvocationDto stepInvocation) throws DataverseException, IOException {
         return getAllDatasetVersions(stepInvocation).stream()
             .filter(d -> Set.of("RELEASED", "DEACCESSIONED").contains(d.getVersionState()))
             .sorted((a, b) -> -1 * versionComparator.compare(a, b))
@@ -75,27 +75,28 @@ public class DataverseServiceImpl implements DataverseService {
     }
 
     @Override
-    public void awaitLock(StepInvocation stepInvocation, String workflow) throws DataverseException, IOException {
+    public void awaitLock(StepInvocationDto stepInvocation, String workflow) throws DataverseException, IOException {
         getDataset(stepInvocation).awaitLock("Workflow");
     }
 
     @Override
-    public void editMetadata(StepInvocation stepInvocation, FieldList fieldList) throws DataverseException, IOException {
+    public void editMetadata(StepInvocationDto stepInvocation, FieldList fieldList) throws DataverseException, IOException {
         if (vaultMetadataKey != null && !vaultMetadataKey.isBlank()) {
             log.debug("Using the VaultMetadataKey (name, value): {}, {}", MDKEY_NAME, vaultMetadataKey);
             var keyMap = new HashMap<String, String>(singletonMap(MDKEY_NAME, vaultMetadataKey));
             getDataset(stepInvocation).editMetadata(fieldList, true, keyMap);
-        } else {
+        }
+        else {
             log.debug("Not using the VaultMetadataKey");
             getDataset(stepInvocation).editMetadata(fieldList, true);
         }
     }
 
-    DatasetApi getDataset(StepInvocation stepInvocation) {
+    DatasetApi getDataset(StepInvocationDto stepInvocation) {
         return dataverseClient.dataset(stepInvocation.getGlobalId(), stepInvocation.getInvocationId());
     }
 
-    Collection<DatasetVersion> getAllDatasetVersions(StepInvocation stepInvocation) throws IOException, DataverseException {
+    Collection<DatasetVersion> getAllDatasetVersions(StepInvocationDto stepInvocation) throws IOException, DataverseException {
         return getDataset(stepInvocation).getAllVersions().getData();
     }
 }

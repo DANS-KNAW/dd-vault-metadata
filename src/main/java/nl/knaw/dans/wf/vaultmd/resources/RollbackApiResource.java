@@ -15,35 +15,21 @@
  */
 package nl.knaw.dans.wf.vaultmd.resources;
 
-import nl.knaw.dans.lib.dataverse.DataverseClient;
-import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-import javax.validation.Valid;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import java.io.IOException;
+import javax.ws.rs.core.Response;
 import java.util.concurrent.Executor;
 
-@Path("/rollback")
-@Produces(MediaType.APPLICATION_JSON)
-public class StepRollbackResource {
-
-    private static final Logger log = LoggerFactory.getLogger(StepRollbackResource.class);
-
+@Slf4j
+@RequiredArgsConstructor
+public class RollbackApiResource implements RollbackApi {
     private final Executor executor;
 
-    public StepRollbackResource(Executor executor) {
-        this.executor = executor;
-    }
-
-    @POST
-    public void run(@Valid StepInvocation inv) throws IOException {
-        log.info("Received rollback request: {}", inv);
+    @Override
+    public Response rollbackPost(Object body) {
+        log.info("Received rollback request: {}", body);
         log.warn("NOT IMPLEMENTED, IGNORING...");
+        return Response.status(200).build();
     }
-
 }

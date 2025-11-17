@@ -20,15 +20,16 @@ import io.dropwizard.core.Application;
 import io.dropwizard.core.setup.Bootstrap;
 import io.dropwizard.core.setup.Environment;
 import nl.knaw.dans.lib.util.DataverseHealthCheck;
+import nl.knaw.dans.wf.vaultmd.config.DdVaultMetadataConfig;
 import nl.knaw.dans.wf.vaultmd.core.DataverseServiceImpl;
 import nl.knaw.dans.wf.vaultmd.core.IdMintingServiceImpl;
 import nl.knaw.dans.wf.vaultmd.core.IdValidatorImpl;
-import nl.knaw.dans.wf.vaultmd.resources.StepInvocationResource;
-import nl.knaw.dans.wf.vaultmd.resources.StepRollbackResource;
+import nl.knaw.dans.wf.vaultmd.resources.InvokeApiResource;
+import nl.knaw.dans.wf.vaultmd.resources.RollbackApiResource;
 
 import java.util.concurrent.ExecutorService;
 
-public class DdVaultMetadataApplication extends Application<DdVaultMetadataConfiguration> {
+public class DdVaultMetadataApplication extends Application<DdVaultMetadataConfig> {
 
     public static void main(final String[] args) throws Exception {
         new DdVaultMetadataApplication().run(args);
@@ -40,12 +41,12 @@ public class DdVaultMetadataApplication extends Application<DdVaultMetadataConfi
     }
 
     @Override
-    public void initialize(final Bootstrap<DdVaultMetadataConfiguration> bootstrap) {
+    public void initialize(final Bootstrap<DdVaultMetadataConfig> bootstrap) {
         bootstrap.getObjectMapper().enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }
 
     @Override
-    public void run(final DdVaultMetadataConfiguration configuration, final Environment environment) {
+    public void run(final DdVaultMetadataConfig configuration, final Environment environment) {
         final var dv = configuration.getDataverse().build(environment, "dd-vault-metadata/dataverse");
         final var mdkey = configuration.getVaultMetadataKey();
         final var dataverseService = new DataverseServiceImpl(dv, mdkey);
@@ -54,8 +55,8 @@ public class DdVaultMetadataApplication extends Application<DdVaultMetadataConfi
 
         environment.healthChecks().register("Dataverse", new DataverseHealthCheck(dv));
         ExecutorService executor = configuration.getTaskQueue().build(environment);
-        environment.jersey().register(new StepInvocationResource(executor, dataverseService, idMintingService, idValidator));
-        environment.jersey().register(new StepRollbackResource(executor));
+        environment.jersey().register(new InvokeApiResource(executor, dataverseService, idMintingService, idValidator));
+        environment.jersey().register(new RollbackApiResource(executor));
     }
 
 }
