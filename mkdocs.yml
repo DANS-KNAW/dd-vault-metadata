@@ -22,8 +22,14 @@ repo_name: DANS-KNAW/dd-vault-metadata
 repo_url: https://github.com/DANS-KNAW/dd-vault-metadata
 
 nav:
-  - Manual: index.md
-  - ⇒ DANS Data Station Architecture: arch.md
+  - Manual:
+      - Description: index.md
+      - Installation: installation.md
+      - Configuration: config.md
+      - API: to-api.md
+      - Context: context.md
+  - Development:
+      - Overview: dev.md
 
 plugins:
   - markdownextradata

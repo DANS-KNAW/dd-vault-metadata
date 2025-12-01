@@ -15,45 +15,31 @@
  */
 package nl.knaw.dans.wf.vaultmd.resources;
 
-import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import nl.knaw.dans.wf.vaultmd.api.StepInvocationDto;
 import nl.knaw.dans.wf.vaultmd.core.DataverseService;
 import nl.knaw.dans.wf.vaultmd.core.IdMintingService;
 import nl.knaw.dans.wf.vaultmd.core.IdValidator;
 import nl.knaw.dans.wf.vaultmd.core.SetVaultMetadataTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.validation.Valid;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.util.concurrent.Executor;
 
-@Path("/invoke")
-@Produces(MediaType.APPLICATION_JSON)
-public class StepInvocationResource {
-
-    private static final Logger log = LoggerFactory.getLogger(StepInvocationResource.class);
-
+@Slf4j
+@RequiredArgsConstructor
+public class InvokeApiResource implements InvokeApi {
     private final Executor executor;
     private final DataverseService dataverseService;
 
     private final IdMintingService idMintingService;
     private final IdValidator idValidator;
 
-    public StepInvocationResource(Executor executor, DataverseService dataverseService, IdMintingService idMintingService, IdValidator idValidator) {
-        this.executor = executor;
-        this.dataverseService = dataverseService;
-        this.idMintingService = idMintingService;
-        this.idValidator = idValidator;
-    }
-
-    @POST
-    public void run(@Valid StepInvocation inv) {
+    @Override
+    public Response invokePost(StepInvocationDto inv) {
         log.info("Received invocation: {}", inv);
         executor.execute(new SetVaultMetadataTask(inv, dataverseService, idMintingService, idValidator));
         log.info("Added new task to queue");
+        return Response.status(200).build();
     }
-
 }

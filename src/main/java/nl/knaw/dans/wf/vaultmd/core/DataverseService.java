@@ -20,7 +20,7 @@ import nl.knaw.dans.lib.dataverse.DataverseHttpResponse;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.FieldList;
 import nl.knaw.dans.lib.dataverse.model.workflow.ResumeMessage;
-import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
+import nl.knaw.dans.wf.vaultmd.api.StepInvocationDto;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -28,9 +28,9 @@ import java.util.Optional;
 
 public interface DataverseService {
 
-    DataverseHttpResponse<Object> resumeWorkflow(StepInvocation stepInvocation, ResumeMessage resumeMessage) throws DataverseException, IOException;
+    DataverseHttpResponse<Object> resumeWorkflow(StepInvocationDto stepInvocation, ResumeMessage resumeMessage) throws DataverseException, IOException;
 
-    Optional<DatasetVersion> getVersion(StepInvocation stepInvocation, String name) throws DataverseException, IOException;
+    Optional<DatasetVersion> getVersion(StepInvocationDto stepInvocation, String name) throws DataverseException, IOException;
 
     /**
      * Gets all dataset versions from Dataverse in descending order
@@ -40,9 +40,9 @@ public interface DataverseService {
      * @throws DataverseException
      * @throws IOException
      */
-    Collection<DatasetVersion> getAllReleasedOrDeaccessionedVersion(StepInvocation stepInvocation) throws DataverseException, IOException;
+    Collection<DatasetVersion> getAllReleasedOrDeaccessionedVersion(StepInvocationDto stepInvocation) throws DataverseException, IOException;
 
-    void awaitLock(StepInvocation stepInvocation, String workflow) throws DataverseException, IOException;
+    void awaitLock(StepInvocationDto stepInvocation, String workflow) throws DataverseException, IOException;
 
-    void editMetadata(StepInvocation stepInvocation, FieldList fieldList) throws DataverseException, IOException;
+    void editMetadata(StepInvocationDto stepInvocation, FieldList fieldList) throws DataverseException, IOException;
 }

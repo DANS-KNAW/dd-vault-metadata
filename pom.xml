@@ -26,7 +26,7 @@
     </parent>
 
     <artifactId>dd-vault-metadata</artifactId>
-    <version>2.8.2-SNAPSHOT</version>
+    <version>2.8.6-SNAPSHOT</version>
 
     <name>DD Vault Metadata</name>
     <url>https://github.com/DANS-KNAW/dd-vault-metadata</url>
@@ -35,6 +35,8 @@
 
     <properties>
         <main-class>nl.knaw.dans.wf.vaultmd.DdVaultMetadataApplication</main-class>
+        <dans-dataverse-client-lib.version>1.4.2</dans-dataverse-client-lib.version>
+        <dd-data-vault-metadata-api.version>1.0.0</dd-data-vault-metadata-api.version>
     </properties>
 
     <scm>
@@ -58,7 +60,6 @@
         <dependency>
             <groupId>nl.knaw.dans</groupId>
             <artifactId>dans-dataverse-client-lib</artifactId>
-
         </dependency>
         <dependency>
             <groupId>nl.knaw.dans</groupId>
@@ -107,6 +108,62 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration combine.children="override">
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>compilation-dependencies</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>nl.knaw.dans</groupId>
+                                    <artifactId>dd-vault-metadata-api</artifactId>
+                                    <version>${dd-data-vault-metadata-api.version}</version>
+                                    <outputDirectory>${project.build.directory}/openapi</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-server</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration combine.children="override">
+                            <generatorName>jaxrs-spec</generatorName>
+                            <inputSpec>${project.build.directory}/openapi/dd-vault-metadata-api.yml</inputSpec>
+                            <apiPackage>nl.knaw.dans.wf.vaultmd.resources</apiPackage>
+                            <modelPackage>nl.knaw.dans.wf.vaultmd.api</modelPackage>
+                            <invokerPackage>nl.knaw.dans.wf.vaultmd.resources</invokerPackage>
+                            <templateDirectory>${project.basedir}/src/main/resources/openapi-generator-templates</templateDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

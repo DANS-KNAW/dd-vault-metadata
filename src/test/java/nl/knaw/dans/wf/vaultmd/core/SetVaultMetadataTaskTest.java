@@ -19,7 +19,7 @@ import nl.knaw.dans.lib.dataverse.DataverseException;
 import nl.knaw.dans.lib.dataverse.model.dataset.FieldList;
 import nl.knaw.dans.lib.dataverse.model.dataset.MetadataField;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
-import nl.knaw.dans.wf.vaultmd.api.StepInvocation;
+import nl.knaw.dans.wf.vaultmd.api.StepInvocationDto;
 import org.assertj.core.api.AbstractStringAssert;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +61,7 @@ class SetVaultMetadataTaskTest {
         Mockito.reset(mintingServiceMock);
     }
 
-    SetVaultMetadataTask createTask(StepInvocation step) {
+    private SetVaultMetadataTask createTask(StepInvocationDto step) {
         return new SetVaultMetadataTask(step, dataverseServiceMock, mintingServiceMock, idValidator);
     }
 
@@ -78,7 +78,12 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of(previous));
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
         var task = createTask(step);
         task.runTask();
         Mockito.verify(dataverseServiceMock).resumeWorkflow(eq(step), argThat(r -> r.getStatus().equals("Success")));
@@ -99,7 +104,13 @@ class SetVaultMetadataTaskTest {
             .thenReturn(List.of(previous));
         Mockito.when(mintingServiceMock.mintBagId()).thenReturn(newBagId);
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
         var metadata = task.getVaultMetadata(step);
 
@@ -123,7 +134,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(mintingServiceMock.mintBagId()).thenReturn(newBagId);
         Mockito.when(mintingServiceMock.mintUrnNbn()).thenReturn(newNbn);
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "0");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("0");
+
         var task = createTask(step);
         var metadata = task.getVaultMetadata(step);
 
@@ -147,7 +164,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of(previous));
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
         var metadata = task.getVaultMetadata(step);
 
@@ -171,7 +194,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(mintingServiceMock.mintBagId()).thenReturn(newBagId);
         Mockito.when(mintingServiceMock.mintUrnNbn()).thenReturn(newNbn);
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "0");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("0");
+
         var task = createTask(step);
         var metadata = task.getVaultMetadata(step);
 
@@ -195,7 +224,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(mintingServiceMock.mintBagId()).thenReturn(newBagId);
         Mockito.when(mintingServiceMock.mintUrnNbn()).thenReturn(newNbn);
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "0");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("0");
+
         var task = createTask(step);
         var metadata = task.getVaultMetadata(step);
 
@@ -221,7 +256,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(mintingServiceMock.mintBagId())
             .thenReturn(newBagId);
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
         var metadata = task.getVaultMetadata(step);
 
@@ -250,7 +291,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(mintingServiceMock.mintBagId())
             .thenReturn(newBagId);
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
         var metadata = task.getVaultMetadata(step);
 
@@ -273,7 +320,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of(previous));
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
         assertDoesNotThrow(() -> task.validateBagMetadata(step, createFieldList(newBagId, nbn, "globalId", "1.0")));
     }
@@ -289,7 +342,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of(previous));
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
         assertThrows(IllegalArgumentException.class,
             () -> task.validateBagMetadata(step, createFieldList(null, nbn, "globalId", "1.0")));
@@ -306,7 +365,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of(previous));
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
         assertThrows(IllegalArgumentException.class,
             () -> task.validateBagMetadata(step, createFieldList(newBagId, null, "globalId", "1.0")));
@@ -323,7 +388,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of(previous));
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
         assertThrows(IllegalArgumentException.class,
             () -> task.validateBagMetadata(step, createFieldList(newBagId, nbn, null, "1.0")));
@@ -337,7 +408,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of());
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "0");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("0");
+
         var task = createTask(step);
         assertDoesNotThrow(() -> task.validateBagMetadata(step, createFieldList(newBagId, nbn, null, "1.0")));
     }
@@ -353,7 +430,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of(previous));
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
 
         assertThrows(IllegalArgumentException.class,
@@ -368,7 +451,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of());
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "0");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("0");
+
         var task = createTask(step);
 
         assertDoesNotThrow(() -> task.validateBagMetadata(step, createFieldList(newBagId, nbn, "globalId", null)));
@@ -382,7 +471,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of());
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
 
         assertThrows(IllegalArgumentException.class,
@@ -400,7 +495,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of(previous));
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "1");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("1");
+
         var task = createTask(step);
 
         assertThrows(IllegalStateException.class,
@@ -420,7 +521,13 @@ class SetVaultMetadataTaskTest {
         Mockito.when(dataverseServiceMock.getAllReleasedOrDeaccessionedVersion(Mockito.any()))
             .thenReturn(List.of(previous1, previous2));
 
-        var step = new StepInvocation("invokeId", "globalId", "datasetId", "1", "2");
+        var step = new StepInvocationDto()
+            .invocationId("invokeId")
+            .globalId("globalId")
+            .datasetId("datasetId")
+            .majorVersion("1")
+            .minorVersion("2");
+
         var task = createTask(step);
 
         assertThrows(IllegalStateException.class,

@@ -13,16 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.wf.vaultmd;
+package nl.knaw.dans.wf.vaultmd.config;
 
 import io.dropwizard.core.Configuration;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import nl.knaw.dans.lib.util.DataverseClientFactory;
 import nl.knaw.dans.lib.util.ExecutorServiceFactory;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-public class DdVaultMetadataConfiguration extends Configuration {
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class DdVaultMetadataConfig extends Configuration {
 
     @Valid
     @NotNull
@@ -34,28 +38,4 @@ public class DdVaultMetadataConfiguration extends Configuration {
 
     @Valid
     private String vaultMetadataKey;
-    
-    public void setTaskQueue(ExecutorServiceFactory taskExecutorThreadPool) {
-        this.taskQueue = taskExecutorThreadPool;
-    }
-
-    public ExecutorServiceFactory getTaskQueue() {
-        return taskQueue;
-    }
-
-    public DataverseClientFactory getDataverse() {
-        return dataverse;
-    }
-
-    public void setDataverse(DataverseClientFactory dataverse) {
-        this.dataverse = dataverse;
-    }
-
-    public String getVaultMetadataKey() {
-        return vaultMetadataKey;
-    }
-
-    public void setVaultMetadataKey(String vaultMetadataKey) {
-        this.vaultMetadataKey = vaultMetadataKey;
-    }
 }
