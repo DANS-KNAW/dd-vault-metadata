@@ -36,6 +36,7 @@
     <properties>
         <main-class>nl.knaw.dans.wf.vaultmd.DdVaultMetadataApplication</main-class>
         <dd-data-vault-metadata-api.version>1.0.0</dd-data-vault-metadata-api.version>
+        <dans-dataverse-client-lib.version>1.4.2</dans-dataverse-client-lib.version>
     </properties>
 
     <scm>
@@ -59,7 +60,6 @@
         <dependency>
             <groupId>nl.knaw.dans</groupId>
             <artifactId>dans-dataverse-client-lib</artifactId>
-            <version>1.4.2</version>
         </dependency>
         <dependency>
             <groupId>nl.knaw.dans</groupId>
