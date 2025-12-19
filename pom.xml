@@ -22,7 +22,7 @@
     <parent>
         <groupId>nl.knaw.dans</groupId>
         <artifactId>dd-parent</artifactId>
-        <version>1.10.0</version>
+        <version>1.11.0</version>
     </parent>
 
     <artifactId>dd-vault-metadata</artifactId>
@@ -35,8 +35,6 @@
 
     <properties>
         <main-class>nl.knaw.dans.wf.vaultmd.DdVaultMetadataApplication</main-class>
-        <dd-data-vault-metadata-api.version>1.0.0</dd-data-vault-metadata-api.version>
-        <dans-dataverse-client-lib.version>1.4.2</dans-dataverse-client-lib.version>
     </properties>
 
     <scm>
