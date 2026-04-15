@@ -260,7 +260,7 @@ public class SetVaultMetadataTask implements Runnable {
         while (tried++ < MAX_RETRIES) {
             try {
                 log.debug("Resuming workflow with id {}, attempt {}", stepInvocation.getGlobalId(), tried);
-                dataverseService.resumeWorkflow(stepInvocation, new ResumeMessage("Success", "", ""));
+                dataverseService.resumeWorkflow(stepInvocation, new ResumeMessage("Success", "Vault Metadata", "Updated Vault Metadata"));
                 return;
             }
             catch (DataverseException e) {
