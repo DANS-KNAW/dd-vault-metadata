@@ -30,7 +30,7 @@
 
     <name>DD Vault Metadata</name>
     <description>Set the DANS Data Vault metadata</description>
-    <url>https://github.com/DANS-KNAW/dd-vault-metadata</url>
+    <url>https://dans-knaw.github.io/dd-vault-metadata</url>
     <inceptionYear>2021</inceptionYear>
 
     <scm>
